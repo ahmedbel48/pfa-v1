@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Entity
@@ -12,18 +15,17 @@ import lombok.EqualsAndHashCode;
 public class Etudiant extends Utilisateur {
 
     @Column(name = "niveau_etude")
-    private String niveauEtude; // Ex: "Licence", "Master", "Doctorat"
+    private String niveauEtude;
 
     @Column(name = "domaine_etude")
-    private String domaineEtude; // Ex: "Informatique", "Gestion"
+    private String domaineEtude;
 
     private String universite;
 
-    // TODO: Décommenter en Phase 3 quand CV sera créé
-    // @OneToMany(mappedBy = "etudiant", cascade = CascadeType.ALL, orphanRemoval = true)
-    // private List<CV> cvs = new ArrayList<>();
+    @OneToMany(mappedBy = "etudiant", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CV> cvs = new ArrayList<>();
 
-    // TODO: Décommenter en Phase 3 quand OffreEmploi sera créé
-    // @OneToMany(mappedBy = "etudiant", cascade = CascadeType.ALL, orphanRemoval = true)
-    // private List<OffreEmploi> offresEmploi = new ArrayList<>();
+    // ✅ Maintenant on active cette relation
+    @OneToMany(mappedBy = "etudiant", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OffreEmploi> offresEmploi = new ArrayList<>();
 }

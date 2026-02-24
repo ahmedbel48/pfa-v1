@@ -3,7 +3,11 @@ package com.ahmed.pfa.cvplatform.service;
 import com.ahmed.pfa.cvplatform.dto.AuthResponse;
 import com.ahmed.pfa.cvplatform.dto.LoginRequest;
 import com.ahmed.pfa.cvplatform.dto.RegisterRequest;
+import com.ahmed.pfa.cvplatform.model.Administrateur;
+import com.ahmed.pfa.cvplatform.model.Etudiant;
 import com.ahmed.pfa.cvplatform.model.Utilisateur;
+import com.ahmed.pfa.cvplatform.repository.AdministrateurRepository;
+import com.ahmed.pfa.cvplatform.repository.EtudiantRepository;
 import com.ahmed.pfa.cvplatform.repository.UtilisateurRepository;
 import com.ahmed.pfa.cvplatform.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +20,12 @@ public class AuthService {
     private UtilisateurRepository utilisateurRepository;
 
     @Autowired
+    private EtudiantRepository etudiantRepository;
+
+    @Autowired
+    private AdministrateurRepository administrateurRepository;
+
+    @Autowired
     private JwtUtil jwtUtil;
 
     // Inscription d'un nouvel utilisateur
@@ -25,23 +35,49 @@ public class AuthService {
             throw new RuntimeException("Email déjà utilisé");
         }
 
-        // 2. Créer un nouvel utilisateur
-        Utilisateur utilisateur = new Utilisateur();
-        utilisateur.setNom(request.getNom());
-        utilisateur.setPrenom(request.getPrenom());
-        utilisateur.setEmail(request.getEmail());
-        utilisateur.setMotDePasse(request.getMotDePasse()); // À crypter plus tard
-        utilisateur.setRole(request.getRole());
+        // 2. Créer selon le rôle spécifié
+        if ("ETUDIANT".equals(request.getRole())) {
+            // Créer un Etudiant
+            Etudiant etudiant = new Etudiant();
+            etudiant.setNom(request.getNom());
+            etudiant.setPrenom(request.getPrenom());
+            etudiant.setEmail(request.getEmail());
+            etudiant.setMotDePasse(request.getMotDePasse()); // À crypter plus tard
+            etudiant.setRole("ETUDIANT");
 
-        // 3. Sauvegarder dans la base de données
-        Utilisateur saved = utilisateurRepository.save(utilisateur);
+            // Sauvegarder dans la base de données
+            Etudiant saved = etudiantRepository.save(etudiant);
 
-        // 4. Retourner la réponse
-        return new AuthResponse(
-                "Utilisateur créé avec succès",
-                saved.getId(),
-                saved.getEmail()
-        );
+            // Retourner la réponse
+            return new AuthResponse(
+                    "Étudiant créé avec succès",
+                    saved.getId(),
+                    saved.getEmail()
+            );
+
+        } else if ("ADMIN".equals(request.getRole())) {
+            // Créer un Administrateur
+            Administrateur admin = new Administrateur();
+            admin.setNom(request.getNom());
+            admin.setPrenom(request.getPrenom());
+            admin.setEmail(request.getEmail());
+            admin.setMotDePasse(request.getMotDePasse()); // À crypter plus tard
+            admin.setRole("ADMIN");
+
+            // Sauvegarder dans la base de données
+            Administrateur saved = administrateurRepository.save(admin);
+
+            // Retourner la réponse
+            return new AuthResponse(
+                    "Administrateur créé avec succès",
+                    saved.getId(),
+                    saved.getEmail()
+            );
+
+        } else {
+            // Rôle non valide
+            throw new RuntimeException("Rôle non valide. Utilisez ETUDIANT ou ADMIN");
+        }
     }
 
     // Connexion d'un utilisateur
