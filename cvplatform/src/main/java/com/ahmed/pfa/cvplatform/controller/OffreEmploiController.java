@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/jobs")
-@CrossOrigin(origins = "*")
+// ✅ @CrossOrigin supprimé pour harmoniser la sécurité
 public class OffreEmploiController {
 
     @Autowired

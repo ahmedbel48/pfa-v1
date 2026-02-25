@@ -12,7 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/cv")
-@CrossOrigin(origins = "*")
+// ✅ @CrossOrigin(origins = "*") supprimé pour la sécurité
 public class CVController {
 
     @Autowired

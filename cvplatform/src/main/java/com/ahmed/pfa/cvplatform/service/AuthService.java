@@ -11,6 +11,7 @@ import com.ahmed.pfa.cvplatform.repository.EtudiantRepository;
 import com.ahmed.pfa.cvplatform.repository.UtilisateurRepository;
 import com.ahmed.pfa.cvplatform.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -28,21 +29,30 @@ public class AuthService {
     @Autowired
     private JwtUtil jwtUtil;
 
-    // Inscription d'un nouvel utilisateur
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    /**
+     * Inscription d'un nouvel utilisateur
+     * Le mot de passe est haché avec BCrypt avant sauvegarde
+     */
     public AuthResponse register(RegisterRequest request) {
         // 1. Vérifier si l'email existe déjà
         if (utilisateurRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email déjà utilisé");
         }
 
-        // 2. Créer selon le rôle spécifié
+        // 2. Hacher le mot de passe avec BCrypt
+        String hashedPassword = passwordEncoder.encode(request.getMotDePasse());
+
+        // 3. Créer selon le rôle spécifié
         if ("ETUDIANT".equals(request.getRole())) {
             // Créer un Etudiant
             Etudiant etudiant = new Etudiant();
             etudiant.setNom(request.getNom());
             etudiant.setPrenom(request.getPrenom());
             etudiant.setEmail(request.getEmail());
-            etudiant.setMotDePasse(request.getMotDePasse()); // À crypter plus tard
+            etudiant.setMotDePasse(hashedPassword);  // ← Mot de passe haché
             etudiant.setRole("ETUDIANT");
 
             // Sauvegarder dans la base de données
@@ -61,7 +71,7 @@ public class AuthService {
             admin.setNom(request.getNom());
             admin.setPrenom(request.getPrenom());
             admin.setEmail(request.getEmail());
-            admin.setMotDePasse(request.getMotDePasse()); // À crypter plus tard
+            admin.setMotDePasse(hashedPassword);  // ← Mot de passe haché
             admin.setRole("ADMIN");
 
             // Sauvegarder dans la base de données
@@ -80,7 +90,10 @@ public class AuthService {
         }
     }
 
-    // Connexion d'un utilisateur
+    /**
+     * Connexion d'un utilisateur
+     * Vérifie le mot de passe haché avec BCrypt
+     */
     public AuthResponse login(LoginRequest request) {
         // 1. Chercher l'utilisateur par email
         Utilisateur utilisateur = utilisateurRepository.findByEmail(request.getEmail());
@@ -90,9 +103,8 @@ public class AuthService {
             throw new RuntimeException("Email ou mot de passe incorrect");
         }
 
-        // 3. Vérifier le mot de passe
-        // (Pour l'instant sans cryptage, on le cryptera plus tard)
-        if (!utilisateur.getMotDePasse().equals(request.getMotDePasse())) {
+        // 3. Vérifier le mot de passe avec BCrypt
+        if (!passwordEncoder.matches(request.getMotDePasse(), utilisateur.getMotDePasse())) {
             throw new RuntimeException("Email ou mot de passe incorrect");
         }
 

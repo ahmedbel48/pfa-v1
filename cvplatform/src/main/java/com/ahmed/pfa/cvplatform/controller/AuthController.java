@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
+// ✅ @CrossOrigin supprimé pour une gestion centralisée dans SecurityConfig
 public class AuthController {
 
     @Autowired

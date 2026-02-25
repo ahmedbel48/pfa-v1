@@ -1,5 +1,7 @@
 package com.ahmed.pfa.cvplatform.model;
 
+// 1. Ajout de l'import nécessaire
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -23,6 +25,8 @@ public class Utilisateur {
     @Column(nullable = false, unique = true)
     private String email;
 
+    // 2. Ajout de @JsonIgnore sur le mot de passe
+    @JsonIgnore
     @Column(name = "mot_de_passe", nullable = false)
     private String motDePasse;
 
