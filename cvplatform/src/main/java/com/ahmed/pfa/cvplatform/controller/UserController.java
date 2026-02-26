@@ -3,6 +3,7 @@ package com.ahmed.pfa.cvplatform.controller;
 import com.ahmed.pfa.cvplatform.dto.UpdateProfileRequest;
 import com.ahmed.pfa.cvplatform.dto.UserProfileResponse;
 import com.ahmed.pfa.cvplatform.service.UserService;
+import jakarta.validation.Valid; // <--- NE PAS OUBLIER CET IMPORT
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,12 +36,12 @@ public class UserController {
     }
 
     /**
-     * Mettre à jour le profil
+     * Mettre à jour le profil avec validation @Valid
      */
     @PutMapping("/{id}")
     public ResponseEntity<UserProfileResponse> updateProfile(
             @PathVariable Long id,
-            @RequestBody UpdateProfileRequest request) {
+            @Valid @RequestBody UpdateProfileRequest request) { // <--- AJOUT DE @Valid ICI
         UserProfileResponse updated = userService.updateProfile(id, request);
         return ResponseEntity.ok(updated);
     }

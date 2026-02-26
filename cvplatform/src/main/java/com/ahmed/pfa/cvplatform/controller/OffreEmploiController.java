@@ -3,6 +3,8 @@ package com.ahmed.pfa.cvplatform.controller;
 import com.ahmed.pfa.cvplatform.dto.OffreEmploiRequest;
 import com.ahmed.pfa.cvplatform.dto.OffreEmploiResponse;
 import com.ahmed.pfa.cvplatform.service.OffreEmploiService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,10 +19,10 @@ public class OffreEmploiController {
     private OffreEmploiService offreEmploiService;
 
     /**
-     * Créer une offre d'emploi
+     * Créer une offre d'emploi avec validation
      */
     @PostMapping
-    public ResponseEntity<OffreEmploiResponse> createOffre(@RequestBody OffreEmploiRequest request) {
+    public ResponseEntity<OffreEmploiResponse> createOffre(@Valid @RequestBody OffreEmploiRequest request) {
         OffreEmploiResponse response = offreEmploiService.createOffre(request);
         return ResponseEntity.ok(response);
     }
@@ -89,12 +91,12 @@ public class OffreEmploiController {
     }
 
     /**
-     * Mettre à jour une offre
+     * Mettre à jour une offre avec validation
      */
     @PutMapping("/{id}")
     public ResponseEntity<OffreEmploiResponse> updateOffre(
             @PathVariable Long id,
-            @RequestBody OffreEmploiRequest request) {
+            @Valid @RequestBody OffreEmploiRequest request) {
         OffreEmploiResponse response = offreEmploiService.updateOffre(id, request);
         return ResponseEntity.ok(response);
     }
