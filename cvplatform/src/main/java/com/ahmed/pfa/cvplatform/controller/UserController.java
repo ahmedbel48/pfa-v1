@@ -11,57 +11,54 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
-// ✅ @CrossOrigin supprimé pour centraliser la sécurité
 public class UserController {
 
     @Autowired
     private UserService userService;
 
-    // ⚠️ IMPORTANT: /test DOIT être AVANT /{id}
-    @GetMapping("/test")
-    public String test() {
-        return "User Controller fonctionne!";
+    /**
+     * Récupérer le profil d'un utilisateur
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<UserProfileResponse> getUserProfile(@PathVariable Long id) {
+        UserProfileResponse profile = userService.getUserProfile(id);
+        return ResponseEntity.ok(profile);
     }
 
-    // Récupérer tous les utilisateurs (Admin uniquement)
+    /**
+     * Récupérer tous les utilisateurs
+     */
     @GetMapping
     public ResponseEntity<List<UserProfileResponse>> getAllUsers() {
         List<UserProfileResponse> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
     }
 
-    // Récupérer le profil d'un utilisateur
-    @GetMapping("/{id}")
-    public ResponseEntity<UserProfileResponse> getUserProfile(@PathVariable Long id) {
-        try {
-            UserProfileResponse profile = userService.getUserProfile(id);
-            return ResponseEntity.ok(profile);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    // Mettre à jour le profil
+    /**
+     * Mettre à jour le profil
+     */
     @PutMapping("/{id}")
     public ResponseEntity<UserProfileResponse> updateProfile(
             @PathVariable Long id,
             @RequestBody UpdateProfileRequest request) {
-        try {
-            UserProfileResponse updated = userService.updateProfile(id, request);
-            return ResponseEntity.ok(updated);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        UserProfileResponse updated = userService.updateProfile(id, request);
+        return ResponseEntity.ok(updated);
     }
 
-    // Supprimer un utilisateur (Admin uniquement)
+    /**
+     * Supprimer un utilisateur
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        try {
-            userService.deleteUser(id);
-            return ResponseEntity.ok().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        userService.deleteUser(id);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Endpoint de test
+     */
+    @GetMapping("/test")
+    public String test() {
+        return "User Controller fonctionne!";
     }
 }

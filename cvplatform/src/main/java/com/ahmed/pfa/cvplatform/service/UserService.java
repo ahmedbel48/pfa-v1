@@ -2,6 +2,7 @@ package com.ahmed.pfa.cvplatform.service;
 
 import com.ahmed.pfa.cvplatform.dto.UpdateProfileRequest;
 import com.ahmed.pfa.cvplatform.dto.UserProfileResponse;
+import com.ahmed.pfa.cvplatform.exception.UserNotFoundException;
 import com.ahmed.pfa.cvplatform.model.Administrateur;
 import com.ahmed.pfa.cvplatform.model.Etudiant;
 import com.ahmed.pfa.cvplatform.model.Utilisateur;
@@ -26,15 +27,19 @@ public class UserService {
     @Autowired
     private AdministrateurRepository administrateurRepository;
 
-    // Récupérer le profil d'un utilisateur par ID
+    /**
+     * Récupérer le profil d'un utilisateur par ID
+     */
     public UserProfileResponse getUserProfile(Long userId) {
         Utilisateur user = utilisateurRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
         return mapToProfileResponse(user);
     }
 
-    // Récupérer tous les utilisateurs (Admin uniquement)
+    /**
+     * Récupérer tous les utilisateurs
+     */
     public List<UserProfileResponse> getAllUsers() {
         List<Utilisateur> users = utilisateurRepository.findAll();
         return users.stream()
@@ -42,10 +47,12 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    // Mettre à jour le profil
+    /**
+     * Mettre à jour le profil
+     */
     public UserProfileResponse updateProfile(Long userId, UpdateProfileRequest request) {
         Utilisateur user = utilisateurRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
         // Mise à jour des champs communs
         if (request.getNom() != null) {
@@ -81,15 +88,19 @@ public class UserService {
         return mapToProfileResponse(user);
     }
 
-    // Supprimer un utilisateur (Admin uniquement)
+    /**
+     * Supprimer un utilisateur
+     */
     public void deleteUser(Long userId) {
         if (!utilisateurRepository.existsById(userId)) {
-            throw new RuntimeException("Utilisateur non trouvé");
+            throw new UserNotFoundException(userId);
         }
         utilisateurRepository.deleteById(userId);
     }
 
-    // Mapper Utilisateur vers UserProfileResponse
+    /**
+     * Mapper Utilisateur vers UserProfileResponse
+     */
     private UserProfileResponse mapToProfileResponse(Utilisateur user) {
         UserProfileResponse response = new UserProfileResponse();
         response.setId(user.getId());

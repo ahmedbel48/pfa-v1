@@ -3,6 +3,8 @@ package com.ahmed.pfa.cvplatform.service;
 import com.ahmed.pfa.cvplatform.dto.AuthResponse;
 import com.ahmed.pfa.cvplatform.dto.LoginRequest;
 import com.ahmed.pfa.cvplatform.dto.RegisterRequest;
+import com.ahmed.pfa.cvplatform.exception.EmailAlreadyExistsException;
+import com.ahmed.pfa.cvplatform.exception.InvalidCredentialsException;
 import com.ahmed.pfa.cvplatform.model.Administrateur;
 import com.ahmed.pfa.cvplatform.model.Etudiant;
 import com.ahmed.pfa.cvplatform.model.Utilisateur;
@@ -39,7 +41,7 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
         // 1. Vérifier si l'email existe déjà
         if (utilisateurRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email déjà utilisé");
+            throw new EmailAlreadyExistsException(request.getEmail());
         }
 
         // 2. Hacher le mot de passe avec BCrypt
@@ -47,18 +49,15 @@ public class AuthService {
 
         // 3. Créer selon le rôle spécifié
         if ("ETUDIANT".equals(request.getRole())) {
-            // Créer un Etudiant
             Etudiant etudiant = new Etudiant();
             etudiant.setNom(request.getNom());
             etudiant.setPrenom(request.getPrenom());
             etudiant.setEmail(request.getEmail());
-            etudiant.setMotDePasse(hashedPassword);  // ← Mot de passe haché
+            etudiant.setMotDePasse(hashedPassword);
             etudiant.setRole("ETUDIANT");
 
-            // Sauvegarder dans la base de données
             Etudiant saved = etudiantRepository.save(etudiant);
 
-            // Retourner la réponse
             return new AuthResponse(
                     "Étudiant créé avec succès",
                     saved.getId(),
@@ -66,18 +65,15 @@ public class AuthService {
             );
 
         } else if ("ADMIN".equals(request.getRole())) {
-            // Créer un Administrateur
             Administrateur admin = new Administrateur();
             admin.setNom(request.getNom());
             admin.setPrenom(request.getPrenom());
             admin.setEmail(request.getEmail());
-            admin.setMotDePasse(hashedPassword);  // ← Mot de passe haché
+            admin.setMotDePasse(hashedPassword);
             admin.setRole("ADMIN");
 
-            // Sauvegarder dans la base de données
             Administrateur saved = administrateurRepository.save(admin);
 
-            // Retourner la réponse
             return new AuthResponse(
                     "Administrateur créé avec succès",
                     saved.getId(),
@@ -85,8 +81,7 @@ public class AuthService {
             );
 
         } else {
-            // Rôle non valide
-            throw new RuntimeException("Rôle non valide. Utilisez ETUDIANT ou ADMIN");
+            throw new IllegalArgumentException("Rôle non valide. Utilisez ETUDIANT ou ADMIN");
         }
     }
 
@@ -100,12 +95,12 @@ public class AuthService {
 
         // 2. Vérifier si l'utilisateur existe
         if (utilisateur == null) {
-            throw new RuntimeException("Email ou mot de passe incorrect");
+            throw new InvalidCredentialsException();
         }
 
         // 3. Vérifier le mot de passe avec BCrypt
         if (!passwordEncoder.matches(request.getMotDePasse(), utilisateur.getMotDePasse())) {
-            throw new RuntimeException("Email ou mot de passe incorrect");
+            throw new InvalidCredentialsException();
         }
 
         // 4. Générer le token JWT

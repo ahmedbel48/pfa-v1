@@ -10,37 +10,34 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-// ✅ @CrossOrigin supprimé pour une gestion centralisée dans SecurityConfig
 public class AuthController {
 
     @Autowired
     private AuthService authService;
 
-    // Endpoint pour l'inscription
+    /**
+     * Endpoint pour l'inscription
+     * Les exceptions sont gérées par GlobalExceptionHandler
+     */
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
-        try {
-            AuthResponse response = authService.register(request);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new AuthResponse(e.getMessage(), null, null));
-        }
+        AuthResponse response = authService.register(request);
+        return ResponseEntity.ok(response);
     }
 
-    // Endpoint pour la connexion
+    /**
+     * Endpoint pour la connexion
+     * Les exceptions sont gérées par GlobalExceptionHandler
+     */
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
-        try {
-            AuthResponse response = authService.login(request);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new AuthResponse(e.getMessage(), null, null));
-        }
+        AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
     }
 
-    // Endpoint de test
+    /**
+     * Endpoint de test
+     */
     @GetMapping("/test")
     public String test() {
         return "Auth Controller fonctionne!";
