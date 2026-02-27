@@ -8,6 +8,10 @@ import com.ahmed.pfa.cvplatform.model.OffreEmploi;
 import com.ahmed.pfa.cvplatform.repository.EtudiantRepository;
 import com.ahmed.pfa.cvplatform.repository.OffreEmploiRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,10 +28,6 @@ public class OffreEmploiService {
     @Autowired
     private EtudiantRepository etudiantRepository;
 
-    /**
-     * Créer une offre d'emploi
-     * @Transactional: Garantit consistance des données
-     */
     @Transactional
     public OffreEmploiResponse createOffre(OffreEmploiRequest request) {
         OffreEmploi offre = new OffreEmploi();
@@ -44,7 +44,6 @@ public class OffreEmploiService {
         offre.setDateExpiration(request.getDateExpiration());
         offre.setActive(true);
 
-        // Si un étudiant est spécifié
         if (request.getEtudiantId() != null) {
             Etudiant etudiant = etudiantRepository.findById(request.getEtudiantId())
                     .orElseThrow(() -> new ResourceNotFoundException("Étudiant", request.getEtudiantId()));
@@ -55,10 +54,8 @@ public class OffreEmploiService {
         return mapToResponse(saved);
     }
 
-    /**
-     * Récupérer toutes les offres actives
-     * @Transactional(readOnly = true): Optimisation lecture
-     */
+    // ========== MÉTHODES SANS PAGINATION (anciennes - gardées) ==========
+
     @Transactional(readOnly = true)
     public List<OffreEmploiResponse> getAllOffresActives() {
         List<OffreEmploi> offres = offreEmploiRepository.findByActiveTrue();
@@ -67,10 +64,6 @@ public class OffreEmploiService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Récupérer toutes les offres
-     * @Transactional(readOnly = true): Optimisation lecture
-     */
     @Transactional(readOnly = true)
     public List<OffreEmploiResponse> getAllOffres() {
         List<OffreEmploi> offres = offreEmploiRepository.findAll();
@@ -79,10 +72,6 @@ public class OffreEmploiService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Récupérer une offre par ID
-     * @Transactional(readOnly = true): Optimisation lecture
-     */
     @Transactional(readOnly = true)
     public OffreEmploiResponse getOffreById(Long id) {
         OffreEmploi offre = offreEmploiRepository.findById(id)
@@ -90,10 +79,6 @@ public class OffreEmploiService {
         return mapToResponse(offre);
     }
 
-    /**
-     * Récupérer les offres d'un étudiant
-     * @Transactional(readOnly = true): Optimisation lecture
-     */
     @Transactional(readOnly = true)
     public List<OffreEmploiResponse> getOffresByEtudiant(Long etudiantId) {
         List<OffreEmploi> offres = offreEmploiRepository.findByEtudiantId(etudiantId);
@@ -102,10 +87,6 @@ public class OffreEmploiService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Rechercher des offres par mot-clé
-     * @Transactional(readOnly = true): Optimisation lecture
-     */
     @Transactional(readOnly = true)
     public List<OffreEmploiResponse> searchOffres(String keyword) {
         List<OffreEmploi> offres = offreEmploiRepository.searchGlobal(keyword);
@@ -114,10 +95,6 @@ public class OffreEmploiService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Filtrer par localisation
-     * @Transactional(readOnly = true): Optimisation lecture
-     */
     @Transactional(readOnly = true)
     public List<OffreEmploiResponse> getOffresByLocalisation(String localisation) {
         List<OffreEmploi> offres = offreEmploiRepository.findByLocalisation(localisation);
@@ -126,10 +103,6 @@ public class OffreEmploiService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Filtrer par type de contrat
-     * @Transactional(readOnly = true): Optimisation lecture
-     */
     @Transactional(readOnly = true)
     public List<OffreEmploiResponse> getOffresByTypeContrat(String typeContrat) {
         List<OffreEmploi> offres = offreEmploiRepository.findByTypeContrat(typeContrat);
@@ -138,10 +111,38 @@ public class OffreEmploiService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Mettre à jour une offre
-     * @Transactional: Garantit consistance lors de la mise à jour
-     */
+    // ========== NOUVELLES MÉTHODES AVEC PAGINATION ==========
+
+    @Transactional(readOnly = true)
+    public Page<OffreEmploiResponse> getAllOffresActivesPage(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("datePublication").descending());
+        Page<OffreEmploi> offresPage = offreEmploiRepository.findByActiveTrue(pageable);
+        return offresPage.map(this::mapToResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OffreEmploiResponse> getAllOffresPage(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("datePublication").descending());
+        Page<OffreEmploi> offresPage = offreEmploiRepository.findAll(pageable);
+        return offresPage.map(this::mapToResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OffreEmploiResponse> getOffresByLocalisationPage(String localisation, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("datePublication").descending());
+        Page<OffreEmploi> offresPage = offreEmploiRepository.findByLocalisation(localisation, pageable);
+        return offresPage.map(this::mapToResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OffreEmploiResponse> getOffresByTypeContratPage(String typeContrat, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("datePublication").descending());
+        Page<OffreEmploi> offresPage = offreEmploiRepository.findByTypeContrat(typeContrat, pageable);
+        return offresPage.map(this::mapToResponse);
+    }
+
+    // ========== CRUD OPERATIONS ==========
+
     @Transactional
     public OffreEmploiResponse updateOffre(Long id, OffreEmploiRequest request) {
         OffreEmploi offre = offreEmploiRepository.findById(id)
@@ -162,10 +163,6 @@ public class OffreEmploiService {
         return mapToResponse(updated);
     }
 
-    /**
-     * Supprimer une offre
-     * @Transactional: Garantit suppression atomique
-     */
     @Transactional
     public void deleteOffre(Long id) {
         if (!offreEmploiRepository.existsById(id)) {
@@ -174,10 +171,6 @@ public class OffreEmploiService {
         offreEmploiRepository.deleteById(id);
     }
 
-    /**
-     * Désactiver une offre
-     * @Transactional: Garantit mise à jour atomique
-     */
     @Transactional
     public OffreEmploiResponse desactiverOffre(Long id) {
         OffreEmploi offre = offreEmploiRepository.findById(id)
@@ -187,9 +180,6 @@ public class OffreEmploiService {
         return mapToResponse(updated);
     }
 
-    /**
-     * Mapper OffreEmploi vers OffreEmploiResponse
-     */
     private OffreEmploiResponse mapToResponse(OffreEmploi offre) {
         OffreEmploiResponse response = new OffreEmploiResponse();
         response.setId(offre.getId());

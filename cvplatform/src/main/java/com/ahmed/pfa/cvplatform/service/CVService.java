@@ -9,6 +9,10 @@ import com.ahmed.pfa.cvplatform.model.Etudiant;
 import com.ahmed.pfa.cvplatform.repository.CVRepository;
 import com.ahmed.pfa.cvplatform.repository.EtudiantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,9 +33,13 @@ public class CVService {
     @Autowired
     private FileStorageService fileStorageService;
 
+    // =========================================================================
+    // ✅ GESTION DES FICHIERS (UPLOAD / DELETE)
+    // =========================================================================
+
     /**
      * Upload d'un CV
-     * @Transactional: Si erreur après save file → rollback DB
+     * @Transactional: Si erreur après save file -> rollback DB
      */
     @Transactional
     public CVUploadResponse uploadCV(MultipartFile file, Long etudiantId) {
@@ -62,13 +70,9 @@ public class CVService {
         cv.setDateUpload(LocalDateTime.now());
         cv.setEtudiant(etudiant);
 
-        // TODO Phase 3.5: Extraire le texte du CV
-        // cv.setContenuTexte(extractText(file));
-
         // 6. Sauvegarder dans la base de données
         CV savedCV = cvRepository.save(cv);
 
-        // 7. Retourner la réponse
         return new CVUploadResponse(
                 savedCV.getId(),
                 savedCV.getNomFichier(),
@@ -77,29 +81,6 @@ public class CVService {
                 savedCV.getDateUpload(),
                 "CV uploadé avec succès"
         );
-    }
-
-    /**
-     * Récupérer tous les CVs d'un étudiant
-     * @Transactional(readOnly = true): Optimisation lecture seule
-     */
-    @Transactional(readOnly = true)
-    public List<CVResponse> getCVsByEtudiant(Long etudiantId) {
-        List<CV> cvs = cvRepository.findByEtudiantId(etudiantId);
-        return cvs.stream()
-                .map(this::mapToCVResponse)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Récupérer un CV par ID
-     * @Transactional(readOnly = true): Optimisation lecture seule
-     */
-    @Transactional(readOnly = true)
-    public CVResponse getCVById(Long cvId) {
-        CV cv = cvRepository.findById(cvId)
-                .orElseThrow(() -> new ResourceNotFoundException("CV", cvId));
-        return mapToCVResponse(cv);
     }
 
     /**
@@ -118,9 +99,49 @@ public class CVService {
         cvRepository.delete(cv);
     }
 
+    // =========================================================================
+    // ✅ NOUVELLE MÉTHODE AVEC PAGINATION
+    // =========================================================================
+
     /**
-     * Vérifier si le type de fichier est valide
+     * Récupérer tous les CVs d'un étudiant avec pagination
+     * @Transactional(readOnly = true): Optimisation lecture seule
      */
+    @Transactional(readOnly = true)
+    public Page<CVResponse> getCVsByEtudiantPage(Long etudiantId, int page, int size) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("dateUpload").descending()
+        );
+
+        Page<CV> cvsPage = cvRepository.findByEtudiantId(etudiantId, pageable);
+        return cvsPage.map(this::mapToCVResponse);
+    }
+
+    // =========================================================================
+    // ✅ MÉTHODES DE LECTURE CLASSIQUES (READ ONLY)
+    // =========================================================================
+
+    @Transactional(readOnly = true)
+    public List<CVResponse> getCVsByEtudiant(Long etudiantId) {
+        List<CV> cvs = cvRepository.findByEtudiantId(etudiantId);
+        return cvs.stream()
+                .map(this::mapToCVResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public CVResponse getCVById(Long cvId) {
+        CV cv = cvRepository.findById(cvId)
+                .orElseThrow(() -> new ResourceNotFoundException("CV", cvId));
+        return mapToCVResponse(cv);
+    }
+
+    // =========================================================================
+    // ✅ HELPERS
+    // =========================================================================
+
     private boolean isValidFileType(String contentType) {
         return contentType != null && (
                 contentType.equals("application/pdf") ||
@@ -128,9 +149,6 @@ public class CVService {
         );
     }
 
-    /**
-     * Mapper CV vers CVResponse
-     */
     private CVResponse mapToCVResponse(CV cv) {
         return new CVResponse(
                 cv.getId(),
@@ -140,7 +158,7 @@ public class CVService {
                 cv.getDateUpload(),
                 cv.getEtudiant().getId(),
                 cv.getEtudiant().getNom() + " " + cv.getEtudiant().getPrenom(),
-                false // analyseDisponible sera implémenté en Phase 5
+                false
         );
     }
 }

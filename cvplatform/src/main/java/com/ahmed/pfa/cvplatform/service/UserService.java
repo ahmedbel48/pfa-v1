@@ -10,8 +10,12 @@ import com.ahmed.pfa.cvplatform.repository.AdministrateurRepository;
 import com.ahmed.pfa.cvplatform.repository.EtudiantRepository;
 import com.ahmed.pfa.cvplatform.repository.UtilisateurRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional; // استيراد المكتبة
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,10 +32,30 @@ public class UserService {
     @Autowired
     private AdministrateurRepository administrateurRepository;
 
+    // =========================================================================
+    // ✅ NOUVELLE MÉTHODE AVEC PAGINATION (TASK 3)
+    // =========================================================================
+
     /**
-     * Récupérer le profil d'un utilisateur par ID
+     * Récupérer tous les utilisateurs avec pagination
      * @Transactional(readOnly = true): Optimisation pour la lecture
      */
+    @Transactional(readOnly = true)
+    public Page<UserProfileResponse> getAllUsersPage(int page, int size) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("id").ascending()
+        );
+
+        Page<Utilisateur> usersPage = utilisateurRepository.findAll(pageable);
+        return usersPage.map(this::mapToProfileResponse);
+    }
+
+    // =========================================================================
+    // ✅ MÉTHODES DE LECTURE CLASSIQUES
+    // =========================================================================
+
     @Transactional(readOnly = true)
     public UserProfileResponse getUserProfile(Long userId) {
         Utilisateur user = utilisateurRepository.findById(userId)
@@ -40,10 +64,6 @@ public class UserService {
         return mapToProfileResponse(user);
     }
 
-    /**
-     * Récupérer tous les utilisateurs
-     * @Transactional(readOnly = true): Optimisation pour la lecture
-     */
     @Transactional(readOnly = true)
     public List<UserProfileResponse> getAllUsers() {
         List<Utilisateur> users = utilisateurRepository.findAll();
@@ -52,16 +72,15 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Mettre à jour le profil
-     * @Transactional: Garantit que toute la mise à jour est atomique
-     */
+    // =========================================================================
+    // ✅ OPÉRATIONS DE MISE À JOUR ET SUPPRESSION
+    // =========================================================================
+
     @Transactional
     public UserProfileResponse updateProfile(Long userId, UpdateProfileRequest request) {
         Utilisateur user = utilisateurRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
-        // Mise à jour des champs communs
         if (request.getNom() != null) {
             user.setNom(request.getNom());
         }
@@ -69,24 +88,15 @@ public class UserService {
             user.setPrenom(request.getPrenom());
         }
 
-        // Mise à jour des champs spécifiques selon le type
         if (user instanceof Etudiant) {
             Etudiant etudiant = (Etudiant) user;
-            if (request.getNiveauEtude() != null) {
-                etudiant.setNiveauEtude(request.getNiveauEtude());
-            }
-            if (request.getDomaineEtude() != null) {
-                etudiant.setDomaineEtude(request.getDomaineEtude());
-            }
-            if (request.getUniversite() != null) {
-                etudiant.setUniversite(request.getUniversite());
-            }
+            if (request.getNiveauEtude() != null) etudiant.setNiveauEtude(request.getNiveauEtude());
+            if (request.getDomaineEtude() != null) etudiant.setDomaineEtude(request.getDomaineEtude());
+            if (request.getUniversite() != null) etudiant.setUniversite(request.getUniversite());
             etudiantRepository.save(etudiant);
         } else if (user instanceof Administrateur) {
             Administrateur admin = (Administrateur) user;
-            if (request.getPermissions() != null) {
-                admin.setPermissions(request.getPermissions());
-            }
+            if (request.getPermissions() != null) admin.setPermissions(request.getPermissions());
             administrateurRepository.save(admin);
         } else {
             utilisateurRepository.save(user);
@@ -95,10 +105,6 @@ public class UserService {
         return mapToProfileResponse(user);
     }
 
-    /**
-     * Supprimer un utilisateur
-     * @Transactional: Rollback en cas d'erreur pendant la suppression
-     */
     @Transactional
     public void deleteUser(Long userId) {
         if (!utilisateurRepository.existsById(userId)) {
@@ -107,10 +113,10 @@ public class UserService {
         utilisateurRepository.deleteById(userId);
     }
 
-    /**
-     * Mapper Utilisateur vers UserProfileResponse
-     * Pas besoin de @Transactional ici (méthode privée utilitaire)
-     */
+    // =========================================================================
+    // ✅ MAPPER (PRIVATE)
+    // =========================================================================
+
     private UserProfileResponse mapToProfileResponse(Utilisateur user) {
         UserProfileResponse response = new UserProfileResponse();
         response.setId(user.getId());

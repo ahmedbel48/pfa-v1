@@ -6,6 +6,7 @@ import com.ahmed.pfa.cvplatform.service.CVService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page; // استيراد Page
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,6 +22,10 @@ public class CVController extends BaseController {
     @Autowired
     private CVService cvService;
 
+    // =========================================================================
+    // ✅ GESTION DES CV (UPLOAD & DELETE)
+    // =========================================================================
+
     @PostMapping("/upload")
     public ResponseEntity<CVUploadResponse> uploadCV(
             @RequestParam("file") MultipartFile file,
@@ -30,6 +35,33 @@ public class CVController extends BaseController {
         CVUploadResponse response = cvService.uploadCV(file, etudiantId);
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCV(@PathVariable Long id) {
+        cvService.deleteCV(id);
+        return ResponseEntity.ok().build();
+    }
+
+    // =========================================================================
+    // ✅ NOUVEAU ENDPOINT AVEC PAGINATION
+    // =========================================================================
+
+    /**
+     * Récupérer tous les CVs d'un étudiant avec pagination
+     */
+    @GetMapping("/etudiant/{etudiantId}/page")
+    public ResponseEntity<Page<CVResponse>> getCVsByEtudiantPage(
+            @PathVariable Long etudiantId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Page<CVResponse> cvs = cvService.getCVsByEtudiantPage(etudiantId, page, size);
+        return ResponseEntity.ok(cvs);
+    }
+
+    // =========================================================================
+    // ✅ ENDPOINTS CLASSIQUES (SANS PAGINATION)
+    // =========================================================================
 
     @GetMapping("/etudiant/{etudiantId}")
     public ResponseEntity<List<CVResponse>> getCVsByEtudiant(@PathVariable Long etudiantId) {
@@ -41,12 +73,6 @@ public class CVController extends BaseController {
     public ResponseEntity<CVResponse> getCVById(@PathVariable Long id) {
         CVResponse cv = cvService.getCVById(id);
         return ResponseEntity.ok(cv);
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCV(@PathVariable Long id) {
-        cvService.deleteCV(id);
-        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/test")

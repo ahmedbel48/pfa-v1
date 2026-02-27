@@ -14,9 +14,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
-/**
- * Configuration de sécurité Spring Security avec JWT
- */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -30,37 +27,31 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
-    /**
-     * Password Encoder - BCrypt
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    /**
-     * Security Filter Chain avec JWT
-     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // CORS configuration
+                // CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
 
-                // Disable CSRF (REST API stateless)
+                // Disable CSRF
                 .csrf(csrf -> csrf.disable())
 
-                // Stateless session (JWT)
+                // Stateless session
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                // Authorization rules
+                // ✅ IMPORTANT: Authorization rules
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints (pas de JWT requis)
+                        // ✅ Public endpoints (PAS de JWT requis)
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // Swagger/OpenAPI
+                        // Swagger
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
@@ -70,20 +61,20 @@ public class SecurityConfig {
                         // Actuator
                         .requestMatchers("/actuator/**").permitAll()
 
-                        // Tous les autres endpoints nécessitent authentication
+                        // ✅ Tous les autres = authenticated
                         .anyRequest().authenticated()
                 )
 
-                // ✅ Custom 401 handler
+                // Custom 401 handler
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 )
 
-                // Disable default login/logout
+                // Disable default forms
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
 
-                // Ajouter le JWT filter
+                // Add JWT filter
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
