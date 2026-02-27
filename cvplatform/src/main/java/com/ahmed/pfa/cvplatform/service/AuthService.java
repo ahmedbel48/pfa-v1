@@ -15,6 +15,7 @@ import com.ahmed.pfa.cvplatform.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
@@ -36,18 +37,19 @@ public class AuthService {
 
     /**
      * Inscription d'un nouvel utilisateur
-     * Le mot de passe est haché avec BCrypt avant sauvegarde
+     * @Transactional: Si erreur après save → rollback
      */
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
-        // 1. Vérifier si l'email existe déjà
+        // Vérifier si l'email existe déjà
         if (utilisateurRepository.existsByEmail(request.getEmail())) {
             throw new EmailAlreadyExistsException(request.getEmail());
         }
 
-        // 2. Hacher le mot de passe avec BCrypt
+        // Hacher le mot de passe
         String hashedPassword = passwordEncoder.encode(request.getMotDePasse());
 
-        // 3. Créer selon le rôle spécifié
+        // Créer selon le rôle
         if ("ETUDIANT".equals(request.getRole())) {
             Etudiant etudiant = new Etudiant();
             etudiant.setNom(request.getNom());
@@ -86,30 +88,29 @@ public class AuthService {
     }
 
     /**
-     * Connexion d'un utilisateur
-     * Vérifie le mot de passe haché avec BCrypt
+     * Connexion - Lecture seule
+     * @Transactional(readOnly = true): Optimisation
      */
+    @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
-        // 1. Chercher l'utilisateur par email
+        // Chercher l'utilisateur
         Utilisateur utilisateur = utilisateurRepository.findByEmail(request.getEmail());
 
-        // 2. Vérifier si l'utilisateur existe
         if (utilisateur == null) {
             throw new InvalidCredentialsException();
         }
 
-        // 3. Vérifier le mot de passe avec BCrypt
+        // Vérifier le mot de passe
         if (!passwordEncoder.matches(request.getMotDePasse(), utilisateur.getMotDePasse())) {
             throw new InvalidCredentialsException();
         }
 
-        // 4. Générer le token JWT
+        // Générer token
         String token = jwtUtil.generateToken(
                 utilisateur.getEmail(),
                 utilisateur.getId()
         );
 
-        // 5. Retourner la réponse avec le token
         return new AuthResponse(
                 "Connexion réussie",
                 utilisateur.getId(),

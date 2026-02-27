@@ -1,5 +1,6 @@
 package com.ahmed.pfa.cvplatform.config;
 
+import com.ahmed.pfa.cvplatform.security.JwtAuthenticationEntryPoint;
 import com.ahmed.pfa.cvplatform.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -25,6 +26,9 @@ public class SecurityConfig {
 
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Autowired
+    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     /**
      * Password Encoder - BCrypt
@@ -66,15 +70,20 @@ public class SecurityConfig {
                         // Actuator
                         .requestMatchers("/actuator/**").permitAll()
 
-                        // ✅ TOUS les autres endpoints nécessitent authentication
+                        // Tous les autres endpoints nécessitent authentication
                         .anyRequest().authenticated()
+                )
+
+                // ✅ Custom 401 handler
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 )
 
                 // Disable default login/logout
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
 
-                // ✅ Ajouter le JWT filter AVANT UsernamePasswordAuthenticationFilter
+                // Ajouter le JWT filter
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

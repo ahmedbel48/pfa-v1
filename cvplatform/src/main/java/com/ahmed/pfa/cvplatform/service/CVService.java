@@ -2,12 +2,15 @@ package com.ahmed.pfa.cvplatform.service;
 
 import com.ahmed.pfa.cvplatform.dto.CVResponse;
 import com.ahmed.pfa.cvplatform.dto.CVUploadResponse;
+import com.ahmed.pfa.cvplatform.exception.InvalidFileException;
+import com.ahmed.pfa.cvplatform.exception.ResourceNotFoundException;
 import com.ahmed.pfa.cvplatform.model.CV;
 import com.ahmed.pfa.cvplatform.model.Etudiant;
 import com.ahmed.pfa.cvplatform.repository.CVRepository;
 import com.ahmed.pfa.cvplatform.repository.EtudiantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -26,21 +29,25 @@ public class CVService {
     @Autowired
     private FileStorageService fileStorageService;
 
-    // Upload d'un CV
+    /**
+     * Upload d'un CV
+     * @Transactional: Si erreur après save file → rollback DB
+     */
+    @Transactional
     public CVUploadResponse uploadCV(MultipartFile file, Long etudiantId) {
         // 1. Vérifier que l'étudiant existe
         Etudiant etudiant = etudiantRepository.findById(etudiantId)
-                .orElseThrow(() -> new RuntimeException("Étudiant non trouvé"));
+                .orElseThrow(() -> new ResourceNotFoundException("Étudiant", etudiantId));
 
         // 2. Vérifier le type de fichier
         String contentType = file.getContentType();
         if (!isValidFileType(contentType)) {
-            throw new RuntimeException("Type de fichier non supporté. Utilisez PDF ou Word.");
+            throw new InvalidFileException("Type de fichier non supporté. Utilisez PDF ou Word.");
         }
 
         // 3. Vérifier la taille (max 5MB)
         if (file.getSize() > 5 * 1024 * 1024) {
-            throw new RuntimeException("Fichier trop volumineux. Maximum 5MB.");
+            throw new InvalidFileException("Fichier trop volumineux. Maximum 5MB.");
         }
 
         // 4. Sauvegarder le fichier physiquement
@@ -72,7 +79,11 @@ public class CVService {
         );
     }
 
-    // Récupérer tous les CVs d'un étudiant
+    /**
+     * Récupérer tous les CVs d'un étudiant
+     * @Transactional(readOnly = true): Optimisation lecture seule
+     */
+    @Transactional(readOnly = true)
     public List<CVResponse> getCVsByEtudiant(Long etudiantId) {
         List<CV> cvs = cvRepository.findByEtudiantId(etudiantId);
         return cvs.stream()
@@ -80,17 +91,25 @@ public class CVService {
                 .collect(Collectors.toList());
     }
 
-    // Récupérer un CV par ID
+    /**
+     * Récupérer un CV par ID
+     * @Transactional(readOnly = true): Optimisation lecture seule
+     */
+    @Transactional(readOnly = true)
     public CVResponse getCVById(Long cvId) {
         CV cv = cvRepository.findById(cvId)
-                .orElseThrow(() -> new RuntimeException("CV non trouvé"));
+                .orElseThrow(() -> new ResourceNotFoundException("CV", cvId));
         return mapToCVResponse(cv);
     }
 
-    // Supprimer un CV
+    /**
+     * Supprimer un CV
+     * @Transactional: Garantit suppression atomique (DB + File)
+     */
+    @Transactional
     public void deleteCV(Long cvId) {
         CV cv = cvRepository.findById(cvId)
-                .orElseThrow(() -> new RuntimeException("CV non trouvé"));
+                .orElseThrow(() -> new ResourceNotFoundException("CV", cvId));
 
         // Supprimer le fichier physique
         fileStorageService.deleteFile(cv.getCheminFichier());
@@ -99,7 +118,9 @@ public class CVService {
         cvRepository.delete(cv);
     }
 
-    // Vérifier si le type de fichier est valide
+    /**
+     * Vérifier si le type de fichier est valide
+     */
     private boolean isValidFileType(String contentType) {
         return contentType != null && (
                 contentType.equals("application/pdf") ||
@@ -107,7 +128,9 @@ public class CVService {
         );
     }
 
-    // Mapper CV vers CVResponse
+    /**
+     * Mapper CV vers CVResponse
+     */
     private CVResponse mapToCVResponse(CV cv) {
         return new CVResponse(
                 cv.getId(),

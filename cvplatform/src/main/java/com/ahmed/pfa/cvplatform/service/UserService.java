@@ -11,6 +11,7 @@ import com.ahmed.pfa.cvplatform.repository.EtudiantRepository;
 import com.ahmed.pfa.cvplatform.repository.UtilisateurRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; // استيراد المكتبة
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,7 +30,9 @@ public class UserService {
 
     /**
      * Récupérer le profil d'un utilisateur par ID
+     * @Transactional(readOnly = true): Optimisation pour la lecture
      */
+    @Transactional(readOnly = true)
     public UserProfileResponse getUserProfile(Long userId) {
         Utilisateur user = utilisateurRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
@@ -39,7 +42,9 @@ public class UserService {
 
     /**
      * Récupérer tous les utilisateurs
+     * @Transactional(readOnly = true): Optimisation pour la lecture
      */
+    @Transactional(readOnly = true)
     public List<UserProfileResponse> getAllUsers() {
         List<Utilisateur> users = utilisateurRepository.findAll();
         return users.stream()
@@ -49,7 +54,9 @@ public class UserService {
 
     /**
      * Mettre à jour le profil
+     * @Transactional: Garantit que toute la mise à jour est atomique
      */
+    @Transactional
     public UserProfileResponse updateProfile(Long userId, UpdateProfileRequest request) {
         Utilisateur user = utilisateurRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
@@ -90,7 +97,9 @@ public class UserService {
 
     /**
      * Supprimer un utilisateur
+     * @Transactional: Rollback en cas d'erreur pendant la suppression
      */
+    @Transactional
     public void deleteUser(Long userId) {
         if (!utilisateurRepository.existsById(userId)) {
             throw new UserNotFoundException(userId);
@@ -100,6 +109,7 @@ public class UserService {
 
     /**
      * Mapper Utilisateur vers UserProfileResponse
+     * Pas besoin de @Transactional ici (méthode privée utilitaire)
      */
     private UserProfileResponse mapToProfileResponse(Utilisateur user) {
         UserProfileResponse response = new UserProfileResponse();

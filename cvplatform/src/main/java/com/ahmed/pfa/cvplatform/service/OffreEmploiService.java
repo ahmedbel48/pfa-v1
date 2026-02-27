@@ -2,12 +2,14 @@ package com.ahmed.pfa.cvplatform.service;
 
 import com.ahmed.pfa.cvplatform.dto.OffreEmploiRequest;
 import com.ahmed.pfa.cvplatform.dto.OffreEmploiResponse;
+import com.ahmed.pfa.cvplatform.exception.ResourceNotFoundException;
 import com.ahmed.pfa.cvplatform.model.Etudiant;
 import com.ahmed.pfa.cvplatform.model.OffreEmploi;
 import com.ahmed.pfa.cvplatform.repository.EtudiantRepository;
 import com.ahmed.pfa.cvplatform.repository.OffreEmploiRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,7 +24,11 @@ public class OffreEmploiService {
     @Autowired
     private EtudiantRepository etudiantRepository;
 
-    // Créer une offre d'emploi
+    /**
+     * Créer une offre d'emploi
+     * @Transactional: Garantit consistance des données
+     */
+    @Transactional
     public OffreEmploiResponse createOffre(OffreEmploiRequest request) {
         OffreEmploi offre = new OffreEmploi();
         offre.setTitre(request.getTitre());
@@ -41,7 +47,7 @@ public class OffreEmploiService {
         // Si un étudiant est spécifié
         if (request.getEtudiantId() != null) {
             Etudiant etudiant = etudiantRepository.findById(request.getEtudiantId())
-                    .orElseThrow(() -> new RuntimeException("Étudiant non trouvé"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Étudiant", request.getEtudiantId()));
             offre.setEtudiant(etudiant);
         }
 
@@ -49,7 +55,11 @@ public class OffreEmploiService {
         return mapToResponse(saved);
     }
 
-    // Récupérer toutes les offres actives
+    /**
+     * Récupérer toutes les offres actives
+     * @Transactional(readOnly = true): Optimisation lecture
+     */
+    @Transactional(readOnly = true)
     public List<OffreEmploiResponse> getAllOffresActives() {
         List<OffreEmploi> offres = offreEmploiRepository.findByActiveTrue();
         return offres.stream()
@@ -57,7 +67,11 @@ public class OffreEmploiService {
                 .collect(Collectors.toList());
     }
 
-    // Récupérer toutes les offres
+    /**
+     * Récupérer toutes les offres
+     * @Transactional(readOnly = true): Optimisation lecture
+     */
+    @Transactional(readOnly = true)
     public List<OffreEmploiResponse> getAllOffres() {
         List<OffreEmploi> offres = offreEmploiRepository.findAll();
         return offres.stream()
@@ -65,14 +79,22 @@ public class OffreEmploiService {
                 .collect(Collectors.toList());
     }
 
-    // Récupérer une offre par ID
+    /**
+     * Récupérer une offre par ID
+     * @Transactional(readOnly = true): Optimisation lecture
+     */
+    @Transactional(readOnly = true)
     public OffreEmploiResponse getOffreById(Long id) {
         OffreEmploi offre = offreEmploiRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Offre non trouvée"));
+                .orElseThrow(() -> new ResourceNotFoundException("Offre", id));
         return mapToResponse(offre);
     }
 
-    // Récupérer les offres d'un étudiant
+    /**
+     * Récupérer les offres d'un étudiant
+     * @Transactional(readOnly = true): Optimisation lecture
+     */
+    @Transactional(readOnly = true)
     public List<OffreEmploiResponse> getOffresByEtudiant(Long etudiantId) {
         List<OffreEmploi> offres = offreEmploiRepository.findByEtudiantId(etudiantId);
         return offres.stream()
@@ -80,7 +102,11 @@ public class OffreEmploiService {
                 .collect(Collectors.toList());
     }
 
-    // Rechercher des offres par mot-clé
+    /**
+     * Rechercher des offres par mot-clé
+     * @Transactional(readOnly = true): Optimisation lecture
+     */
+    @Transactional(readOnly = true)
     public List<OffreEmploiResponse> searchOffres(String keyword) {
         List<OffreEmploi> offres = offreEmploiRepository.searchGlobal(keyword);
         return offres.stream()
@@ -88,7 +114,11 @@ public class OffreEmploiService {
                 .collect(Collectors.toList());
     }
 
-    // Filtrer par localisation
+    /**
+     * Filtrer par localisation
+     * @Transactional(readOnly = true): Optimisation lecture
+     */
+    @Transactional(readOnly = true)
     public List<OffreEmploiResponse> getOffresByLocalisation(String localisation) {
         List<OffreEmploi> offres = offreEmploiRepository.findByLocalisation(localisation);
         return offres.stream()
@@ -96,7 +126,11 @@ public class OffreEmploiService {
                 .collect(Collectors.toList());
     }
 
-    // Filtrer par type de contrat
+    /**
+     * Filtrer par type de contrat
+     * @Transactional(readOnly = true): Optimisation lecture
+     */
+    @Transactional(readOnly = true)
     public List<OffreEmploiResponse> getOffresByTypeContrat(String typeContrat) {
         List<OffreEmploi> offres = offreEmploiRepository.findByTypeContrat(typeContrat);
         return offres.stream()
@@ -104,10 +138,14 @@ public class OffreEmploiService {
                 .collect(Collectors.toList());
     }
 
-    // Mettre à jour une offre
+    /**
+     * Mettre à jour une offre
+     * @Transactional: Garantit consistance lors de la mise à jour
+     */
+    @Transactional
     public OffreEmploiResponse updateOffre(Long id, OffreEmploiRequest request) {
         OffreEmploi offre = offreEmploiRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Offre non trouvée"));
+                .orElseThrow(() -> new ResourceNotFoundException("Offre", id));
 
         if (request.getTitre() != null) offre.setTitre(request.getTitre());
         if (request.getEntreprise() != null) offre.setEntreprise(request.getEntreprise());
@@ -124,24 +162,34 @@ public class OffreEmploiService {
         return mapToResponse(updated);
     }
 
-    // Supprimer une offre
+    /**
+     * Supprimer une offre
+     * @Transactional: Garantit suppression atomique
+     */
+    @Transactional
     public void deleteOffre(Long id) {
         if (!offreEmploiRepository.existsById(id)) {
-            throw new RuntimeException("Offre non trouvée");
+            throw new ResourceNotFoundException("Offre", id);
         }
         offreEmploiRepository.deleteById(id);
     }
 
-    // Désactiver une offre
+    /**
+     * Désactiver une offre
+     * @Transactional: Garantit mise à jour atomique
+     */
+    @Transactional
     public OffreEmploiResponse desactiverOffre(Long id) {
         OffreEmploi offre = offreEmploiRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Offre non trouvée"));
+                .orElseThrow(() -> new ResourceNotFoundException("Offre", id));
         offre.setActive(false);
         OffreEmploi updated = offreEmploiRepository.save(offre);
         return mapToResponse(updated);
     }
 
-    // Mapper OffreEmploi vers OffreEmploiResponse
+    /**
+     * Mapper OffreEmploi vers OffreEmploiResponse
+     */
     private OffreEmploiResponse mapToResponse(OffreEmploi offre) {
         OffreEmploiResponse response = new OffreEmploiResponse();
         response.setId(offre.getId());
